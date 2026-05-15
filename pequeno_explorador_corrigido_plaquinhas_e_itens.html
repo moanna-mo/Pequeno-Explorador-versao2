@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pequeno Explorador - Plaquinhas Menores</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+body{
+  overflow:hidden;
+  font-family:"Comic Sans MS", "Trebuchet MS", sans-serif;
+  background:#9ee8ff;
+  user-select:none;
+  touch-action:none;
+}
+
+canvas{
+  display:block;
+  width:100vw;
+  height:100vh;
+}
+
+.hidden{display:none!important}
+
+.screen{
+  position:fixed;
+  inset:0;
+  z-index:80;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:linear-gradient(180deg,#18a8ff 0%,#82ddff 30%,#9be66b 64%,#45b848 100%);
+}
+
+.screen::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at 8% 78%,#ff77ad 0 2.8%,transparent 3%),
+    radial-gradient(circle at 13% 82%,#ffd44c 0 2.4%,transparent 3%),
+    radial-gradient(circle at 89% 73%,#8b5cff 0 2.5%,transparent 3.1%),
+    radial-gradient(circle at 94% 80%,#ff6f91 0 2.7%,transparent 3.2%),
+    radial-gradient(circle at 15% 20%,rgba(255,255,255,.75),transparent 16%),
+    radial-gradient(circle at 80% 18%,rgba(255,255,255,.55),transparent 18%);
+  animation:floatBg 5s ease-in-out infinite alternate;
+}
+
+@keyframes floatBg{
+  from{transform:translateY(0)}
+  to{transform:translateY(-12px)}
+}
+
+.card{
+  position:relative;
+  width:min(92%,760px);
+  background:rgba(255,255,255,.92);
+  border:6px solid #fff4d8;
+  border-radius:42px;
+  padding:32px;
+  outline:3px solid rgba(172,121,46,.25);
+  text-align:center;
+  box-shadow:0 22px 45px rgba(45,90,70,.25), inset 0 0 25px rgba(255,255,255,.75);
+}
+
+.card h1{
+  color:#2d7b24;
+  font-size:2.6rem;
+  text-shadow:0 4px 0 rgba(255,255,255,.8);
+  margin-bottom:10px;
+}
+
+.card p{
+  color:#70411f;
+  font-size:1.12rem;
+  font-weight:bold;
+  margin-bottom:18px;
+}
+
+.characterSelect{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:22px;
+  margin:22px 0;
+}
+
+.characterCard{
+  border:5px solid #fff;
+  border-radius:32px;
+  padding:18px;
+  background:linear-gradient(180deg,#e8f8ff,#c7edff);
+  box-shadow:0 12px 25px rgba(0,0,0,.16), inset 0 0 18px rgba(255,255,255,.85);
+  cursor:pointer;
+  transition:.2s;
+}
+
+.characterCard.girl{
+  background:linear-gradient(180deg,#ffe7ef,#ffc6dc);
+}
+
+.characterCard.selected{
+  transform:scale(1.04);
+  outline:6px solid #ffcf42;
+  box-shadow:0 0 28px #ffd84d;
+}
+
+.characterPreview{
+  height:230px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+.previewCanvas{
+  width:210px;
+  height:220px;
+}
+
+button{
+  border:none;
+  cursor:pointer;
+  border-radius:25px;
+  padding:13px 20px;
+  font-size:1rem;
+  font-weight:bold;
+  color:white;
+  background:linear-gradient(180deg,#ffca3a,#fb8500);
+  box-shadow:0 8px 0 #c96d00,0 13px 22px rgba(0,0,0,.22);
+  transition:.12s;
+}
+
+button:active{
+  transform:translateY(5px);
+  box-shadow:0 3px 0 #c96d00,0 8px 15px rgba(0,0,0,.2);
+}
+
+#startBtn{
+  font-size:1.25rem;
+  padding:16px 26px;
+}
+
+#hud{
+  position:fixed;
+  top:6px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:30;
+  display:flex;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:4px;
+  width:92%;
+  pointer-events:none;
+}
+
+.hudBox{
+  background:rgba(255,252,236,.90);
+  border:2px solid #fff;
+  border-radius:13px;
+  padding:4px 7px;
+  font-size:.68rem;
+  font-weight:bold;
+  color:#5b351b;
+  box-shadow:0 3px 8px rgba(0,0,0,.12), inset 0 -2px 0 rgba(255,214,120,.24);
+}
+
+.hudIcon{
+  font-size:.86rem;
+  margin-right:2px;
+}
+
+#topButtons{
+  position:fixed;
+  left:8px;
+  top:58px;
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  z-index:35;
+}
+
+#topButtons button{
+  background:linear-gradient(180deg,#fffdf2,#ffe7a3);
+  color:#5b351b;
+  box-shadow:0 6px 0 #e0b452,0 9px 18px rgba(0,0,0,.18);
+  border:2px solid white;
+  padding:7px 10px;
+  font-size:.78rem;
+  border-radius:16px;
+}
+
+#learningList{
+  position:fixed;
+  right:8px;
+  top:58px;
+  z-index:35;
+  background:rgba(255,253,242,.88);
+  border:2px solid white;
+  padding:6px;
+  border-radius:12px;
+  box-shadow:0 4px 10px rgba(0,0,0,.12);
+  color:#5b351b;
+  max-width:104px;
+  text-align:center;
+  font-size:.58rem;
+}
+
+#learningTitle{
+  color:#2f8d2f;
+  margin-bottom:3px;
+  font-size:.65rem;
+}
+
+#learningItems{
+  display:flex;
+  flex-wrap:wrap;
+  gap:3px;
+  justify-content:center;
+}
+
+#learningItems span{
+  background:linear-gradient(180deg,#fff9bf,#ffd95a);
+  color:#5b351b;
+  padding:4px 7px;
+  border-radius:10px;
+  font-size:.72rem;
+  font-weight:bold;
+  box-shadow:0 2px 0 #dba832;
+}
+
+#learningItems span.collected{
+  background:linear-gradient(180deg,#a7ff8a,#31c653);
+  color:white;
+  transform:scale(1.15);
+  box-shadow:0 0 18px #42ff68;
+}
+
+.panel{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  z-index:90;
+  background:rgba(255,253,242,.98);
+  border:5px solid white;
+  padding:25px;
+  border-radius:32px;
+  box-shadow:0 18px 40px rgba(0,0,0,.28);
+  width:min(92%,450px);
+  text-align:center;
+  color:#5b351b;
+}
+
+.panel h3{
+  color:#2f8d2f;
+  font-size:1.5rem;
+  margin-bottom:13px;
+}
+
+#backpackItems{
+  margin:15px 0;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  justify-content:center;
+}
+
+#backpackItems span{
+  background:linear-gradient(180deg,#fff8b7,#ffd95a);
+  padding:9px 12px;
+  border-radius:16px;
+  font-weight:bold;
+  box-shadow:0 4px 0 #dba832;
+}
+
+#parentPanel input,
+#parentPanel select{
+  width:100%;
+  margin-top:9px;
+  padding:12px;
+  border-radius:16px;
+  border:3px solid #f1d69b;
+  font-family:inherit;
+  font-weight:bold;
+  color:#5b351b;
+}
+
+#messageBox{
+  position:fixed;
+  left:50%;
+  bottom:72px;
+  transform:translateX(-50%);
+  background:rgba(255,253,242,.90);
+  border:2px solid white;
+  padding:7px 12px;
+  border-radius:13px;
+  font-size:.72rem;
+  font-weight:bold;
+  color:#5b351b;
+  text-align:center;
+  z-index:40;
+  box-shadow:0 5px 12px rgba(0,0,0,.14);
+  max-width:58%;
+}
+
+#joystickContainer{
+  position:fixed;
+  left:24px;
+  bottom:24px;
+  width:155px;
+  height:155px;
+  z-index:45;
+  touch-action:none;
+}
+
+#joystickBase{
+  width:155px;
+  height:155px;
+  border-radius:50%;
+  background:rgba(255,255,255,.24);
+  border:5px solid rgba(255,255,255,.65);
+  box-shadow:0 10px 25px rgba(0,0,0,.18), inset 0 0 25px rgba(255,255,255,.45);
+  position:relative;
+  backdrop-filter:blur(5px);
+}
+
+#joystickStick{
+  width:72px;
+  height:72px;
+  border-radius:50%;
+  background:linear-gradient(180deg,#fffef2,#f2e7be);
+  position:absolute;
+  left:41.5px;
+  top:41.5px;
+  box-shadow:0 7px 0 #d2bf7a,0 12px 20px rgba(0,0,0,.28);
+  border:4px solid white;
+}
+
+.flyingCollect{
+  position:fixed;
+  z-index:120;
+  width:58px;
+  height:58px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:50%;
+  background:radial-gradient(circle at 35% 25%,#fffdf0,#ffe479 55%,#ffbd2e);
+  border:4px solid white;
+  box-shadow:0 10px 25px rgba(0,0,0,.24),0 0 22px rgba(255,220,70,.9);
+  font-size:30px;
+  font-weight:bold;
+  color:#6b3a12;
+  pointer-events:none;
+  transform:translate(-50%,-50%) scale(1);
+  transition:left .85s cubic-bezier(.18,.9,.28,1.18), top .85s cubic-bezier(.18,.9,.28,1.18), transform .85s ease, opacity .85s ease;
+}
+
+.flyingCollect::after{
+  content:"✨";
+  position:absolute;
+  right:-12px;
+  top:-14px;
+  font-size:22px;
+  animation:sparkFly .45s ease-in-out infinite alternate;
+}
+
+@keyframes sparkFly{
+  from{transform:scale(.85) rotate(-8deg)}
+  to{transform:scale(1.25) rotate(10deg)}
+}
+
+.trophy{font-size:5rem}
+
+@media(min-width:769px){
+  #joystickContainer{display:none}
+}
+
+@media(max-width:768px){
+  .card{padding:22px;border-radius:32px}
+  .card h1{font-size:1.9rem}
+  .characterSelect{gap:12px}
+  .characterPreview{height:165px}
+  .previewCanvas{width:150px;height:160px}
+  #hud{font-size:.48rem;top:4px;gap:3px;width:96%}
+  .hudBox{padding:3px 5px;border-radius:10px;border-width:1px}
+  .hudIcon{font-size:.68rem;margin-right:1px}
+  #topButtons{top:46px;left:5px;gap:4px}
+  #topButtons button{font-size:.52rem;padding:4px 6px;border-radius:10px;min-width:62px}
+  #learningList{right:5px;top:46px;max-width:88px;padding:5px;font-size:.5rem;border-radius:10px;border-width:1px}
+  #learningTitle{font-size:.55rem;margin-bottom:3px}
+  #learningItems span{font-size:.46rem;padding:2px 4px;border-radius:6px}
+  #messageBox{bottom:68px;font-size:.62rem;padding:6px 10px;max-width:52%;border-radius:11px;border-width:1px}
+  #joystickContainer{width:130px;height:130px;left:14px;bottom:14px}
+  #joystickBase{width:130px;height:130px}
+  #joystickStick{width:62px;height:62px;left:34px;top:34px}
+}
+</style>
+</head>
+
+<body>
+
+<div id="startScreen" class="screen">
+  <div class="card">
+    <h1>✨ Pequeno Explorador ✨</h1>
+    <p>Escolha seu personagem chibi fofo para começar a aventura mágica!</p>
+
+    <div class="characterSelect">
+      <div class="characterCard selected" id="boyCard">
+        <div class="characterPreview"><canvas class="previewCanvas" id="boyPreview" width="210" height="220"></canvas></div>
+        <button>👦 Menino</button>
+      </div>
+      <div class="characterCard girl" id="girlCard">
+        <div class="characterPreview"><canvas class="previewCanvas" id="girlPreview" width="210" height="220"></canvas></div>
+        <button>👧 Menina</button>
+      </div>
+    </div>
+
+    <button id="startBtn">▶ Iniciar Aventura</button>
+  </div>
+</div>
+
+<div id="victoryScreen" class="screen hidden">
+  <div class="card">
+    <div class="trophy">🏆</div>
+    <h1>Parabéns!</h1>
+    <p>Você é um grande explorador!</p>
+    <p>Congratulations! You are a great explorer!</p>
+    <button onclick="location.reload()">🔁 Jogar Novamente</button>
+  </div>
+</div>
+
+<div id="hud">
+  <div class="hudBox"><span class="hudIcon">⭐</span><span id="stars">0</span></div>
+  <div class="hudBox"><span class="hudIcon">🏆</span><span id="score">0</span></div>
+  <div class="hudBox"><span class="hudIcon">🧰</span><span id="stageName">Cores</span></div>
+  <div class="hudBox"><span class="hudIcon">📋</span><span id="progress">0/0</span></div>
+</div>
+
+<div id="topButtons">
+  <button id="openBackpack">🎒</button>
+  <button id="repeatSound">🔊</button>
+  <button id="openParent">⚙️</button>
+</div>
+
+<div id="learningList" class="hidden">
+  <h3 id="learningTitle">Lista</h3>
+  <div id="learningItems"></div>
+</div>
+
+<div id="backpackPanel" class="hidden panel">
+  <h3>🎒 Palavras aprendidas</h3>
+  <div id="backpackItems"></div>
+  <button id="closeBackpack">Fechar</button>
+</div>
+
+<div id="parentPanel" class="hidden panel">
+  <h3>⚙️ Área dos Pais</h3>
+
+  <select id="scenarioSelect">
+    <option value="forest">🌳 Floresta mágica</option>
+    <option value="beach">🏖️ Praia divertida</option>
+    <option value="night">🌙 Noite encantada</option>
+    <option value="castle">🏰 Castelo mágico</option>
+    <option value="space">🚀 Espaço sideral</option>
+    <option value="ice">❄️ Mundo de gelo</option>
+  </select>
+
+  <select id="stageSelect">
+    <option value="0">Cores</option>
+    <option value="1">Letras</option>
+    <option value="2">Números</option>
+    <option value="3">Objetos</option>
+    <option value="4">Animais</option>
+  </select>
+
+  <input id="wordPt" placeholder="Português. Ex: Gato" />
+  <input id="wordEn" placeholder="Inglês. Ex: Cat" />
+  <input id="wordEmoji" placeholder="Emoji ou cor. Ex: 🐱 ou purple" />
+
+  <button id="addWord">Adicionar ao baú</button>
+  <button id="removeWord">Remover do baú</button>
+  <button id="closeParent">Fechar</button>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="messageBox" class="hidden"></div>
+
+<div id="joystickContainer">
+  <div id="joystickBase">
+    <div id="joystickStick"></div>
+  </div>
+</div>
+
+<script>
+const canvas=document.getElementById("gameCanvas");
+const ctx=canvas.getContext("2d");
+
+const startBtn=document.getElementById("startBtn");
+const startScreen=document.getElementById("startScreen");
+const victoryScreen=document.getElementById("victoryScreen");
+const messageBox=document.getElementById("messageBox");
+
+const starsEl=document.getElementById("stars");
+const scoreEl=document.getElementById("score");
+const stageNameEl=document.getElementById("stageName");
+const progressEl=document.getElementById("progress");
+
+const learningList=document.getElementById("learningList");
+const learningTitle=document.getElementById("learningTitle");
+const learningItems=document.getElementById("learningItems");
+
+const openBackpack=document.getElementById("openBackpack");
+const closeBackpack=document.getElementById("closeBackpack");
+const backpackPanel=document.getElementById("backpackPanel");
+const backpackItems=document.getElementById("backpackItems");
+const repeatSound=document.getElementById("repeatSound");
+
+const openParent=document.getElementById("openParent");
+const closeParent=document.getElementById("closeParent");
+const parentPanel=document.getElementById("parentPanel");
+const scenarioSelect=document.getElementById("scenarioSelect");
+const stageSelect=document.getElementById("stageSelect");
+const wordPt=document.getElementById("wordPt");
+const wordEn=document.getElementById("wordEn");
+const wordEmoji=document.getElementById("wordEmoji");
+const addWord=document.getElementById("addWord");
+const removeWord=document.getElementById("removeWord");
+
+const boyCard=document.getElementById("boyCard");
+const girlCard=document.getElementById("girlCard");
+
+let width,height;
+let gameStarted=false;
+let score=0;
+let stars=0;
+let currentStage=0;
+let keys={};
+let particles=[];
+let balloons=[];
+let fireworks=[];
+let activeItems=[];
+let learnedWords=[];
+let lastSoundPt="";
+let lastSoundEn="";
+let currentScenario="forest";
+let selectedCharacter="boy";
+let walkTime=0;
+
+let chest={x:0,y:0,opened:false,pulse:0};
+const player={x:150,y:220,speed:3.8};
+
+const stages=[
+  {name:"Cores",chestText:"Toque no baú mágico para liberar as cores!",items:[
+    {type:"color",pt:"Vermelho",en:"Red",color:"#ff3b30"},
+    {type:"color",pt:"Azul",en:"Blue",color:"#007aff"},
+    {type:"color",pt:"Verde",en:"Green",color:"#28c76f"},
+    {type:"color",pt:"Amarelo",en:"Yellow",color:"#ffd60a"},
+    {type:"color",pt:"Roxo",en:"Purple",color:"#9b5de5"},
+    {type:"color",pt:"Laranja",en:"Orange",color:"#ff8c00"},
+    {type:"color",pt:"Rosa",en:"Pink",color:"#ff5da2"}
+  ]},
+  {name:"Letras",chestText:"Toque no segundo baú para liberar as letras!",items:[
+    {type:"letter",pt:"A",en:"A",letter:"A a",key:"A"},
+    {type:"letter",pt:"B",en:"B",letter:"B b",key:"B"},
+    {type:"letter",pt:"C",en:"C",letter:"C c",key:"C"},
+    {type:"letter",pt:"D",en:"D",letter:"D d",key:"D"},
+    {type:"letter",pt:"E",en:"E",letter:"E e",key:"E"}
+  ]},
+  {name:"Números",chestText:"Toque no terceiro baú para liberar os números!",items:Array.from({length:10},(_,i)=>({
+    type:"number",pt:String(i+1),en:["One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten"][i],number:i+1,key:String(i+1)
+  }))},
+  {name:"Objetos",chestText:"Toque no quarto baú para liberar os objetos!",items:[
+    {type:"object",pt:"Maçã",en:"Apple",emoji:"🍎"},
+    {type:"object",pt:"Bola",en:"Ball",emoji:"⚽"},
+    {type:"object",pt:"Casa",en:"House",emoji:"🏠"},
+    {type:"object",pt:"Livro",en:"Book",emoji:"📚"},
+    {type:"object",pt:"Escova",en:"Brush",emoji:"🪥"}
+  ]},
+  {name:"Animais",chestText:"Toque no quinto baú para liberar os animais!",items:[
+    {type:"animal",pt:"Coelho",en:"Rabbit",emoji:"🐇"},
+    {type:"animal",pt:"Borboleta",en:"Butterfly",emoji:"🦋"},
+    {type:"animal",pt:"Raposa",en:"Fox",emoji:"🦊"},
+    {type:"animal",pt:"Sapo",en:"Frog",emoji:"🐸"},
+    {type:"animal",pt:"Pássaro",en:"Bird",emoji:"🐦"}
+  ]}
+];
+
+function resizeCanvas(){
+  width=canvas.width=window.innerWidth;
+  height=canvas.height=window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener("resize",resizeCanvas);
+
+function roundedRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+boyCard.onclick=()=>selectCharacter("boy");
+girlCard.onclick=()=>selectCharacter("girl");
+
+function selectCharacter(type){
+  selectedCharacter=type;
+  boyCard.classList.toggle("selected",type==="boy");
+  girlCard.classList.toggle("selected",type==="girl");
+}
+
+function drawPreviewCharacters(){
+  const boy=document.getElementById("boyPreview").getContext("2d");
+  const girl=document.getElementById("girlPreview").getContext("2d");
+  boy.clearRect(0,0,210,220);
+  girl.clearRect(0,0,210,220);
+  drawChibi(boy,105,145,1.05,"boy",0,false);
+  drawChibi(girl,105,145,1.05,"girl",0,false);
+}
+
+drawPreviewCharacters();
+
+scenarioSelect.onchange=()=>{
+  currentScenario=scenarioSelect.value;
+  showMessage("🎨 Cenário alterado!");
+};
+
+startBtn.onclick=()=>{
+  startScreen.classList.add("hidden");
+  gameStarted=true;
+  loadChestStage();
+  speak("Vamos explorar a aventura mágica!","pt-BR");
+};
+
+function loadChestStage(){
+  const stage=stages[currentStage];
+  activeItems=[];
+  chest.opened=false;
+  const chestSpots=[
+    {x:width*.26,y:height*.37},
+    {x:width*.72,y:height*.38},
+    {x:width*.35,y:height*.63},
+    {x:width*.68,y:height*.65},
+    {x:width*.50,y:height*.48}
+  ];
+  chest.x=chestSpots[currentStage].x;
+  chest.y=chestSpots[currentStage].y;
+  stageNameEl.textContent=stage.name;
+  progressEl.textContent="Abra o baú";
+  learningList.classList.add("hidden");
+  showMessage("🧰 "+stage.chestText);
+}
+
+
+function getItemSafePosition(placedItems, index, total){
+  const safeTop=window.innerWidth<=768?92:110;
+  const safeBottom=window.innerWidth<=768?150:130;
+  const marginX=window.innerWidth<=768?82:120;
+  const minDist=window.innerWidth<=768?82:115;
+  const playerDist=window.innerWidth<=768?95:120;
+  const chestDist=window.innerWidth<=768?100:125;
+
+  const areaW=Math.max(160,width-marginX*2);
+  const areaH=Math.max(180,height-safeTop-safeBottom);
+
+  // Primeira tentativa: grade organizada. Isso evita itens em cima uns dos outros.
+  const cols=Math.ceil(Math.sqrt(total));
+  const rows=Math.ceil(total/cols);
+  const col=index%cols;
+  const row=Math.floor(index/cols);
+  let x=marginX+(col+.5)*(areaW/cols);
+  let y=safeTop+(row+.5)*(areaH/rows);
+  x+=Math.sin(index*2.1)*18;
+  y+=Math.cos(index*1.7)*18;
+
+  function valid(px,py){
+    if(px<marginX || px>width-marginX || py<safeTop || py>height-safeBottom) return false;
+    if(Math.hypot(px-player.x,py-player.y)<playerDist) return false;
+    if(!chest.opened && Math.hypot(px-chest.x,py-chest.y)<chestDist) return false;
+    return placedItems.every(p=>Math.hypot(px-p.x,py-p.y)>=minDist);
+  }
+
+  if(valid(x,y)) return {x,y};
+
+  // Segunda tentativa: posições aleatórias com distância mínima.
+  for(let tries=0;tries<160;tries++){
+    const px=marginX+Math.random()*areaW;
+    const py=safeTop+Math.random()*areaH;
+    if(valid(px,py)) return {x:px,y:py};
+  }
+
+  // Último recurso: grade sem falhar, ainda espalhada.
+  return {x:Math.max(marginX,Math.min(width-marginX,x)),y:Math.max(safeTop,Math.min(height-safeBottom,y))};
+}
+
+function createSeparatedItems(stage){
+  const placed=[];
+  return stage.items.map((item,index)=>{
+    const pos=getItemSafePosition(placed,index,stage.items.length);
+    const newItem={...item,x:pos.x,y:pos.y,collected:false,pulse:Math.random()*10};
+    placed.push(newItem);
+    return newItem;
+  });
+}
+
+function openChest(){
+  chest.opened=true;
+  playSound(700,.2);
+  speak("Baú de "+stages[currentStage].name+" aberto!","pt-BR");
+  createParticles(chest.x,chest.y,70);
+  createBalloons(chest.x,chest.y);
+
+  const stage=stages[currentStage];
+  activeItems=createSeparatedItems(stage);
+  progressEl.textContent=`0/${stage.items.length}`;
+  showMessage("✨ Baú aberto! Encontre: "+stage.name);
+  updateLearningList();
+}
+
+function updateLearningList(){
+  learningItems.innerHTML="";
+  learningList.classList.remove("hidden");
+
+  const stage=stages[currentStage];
+  learningTitle.textContent=stage.name==="Cores"?"Lista":"Lista";
+
+  stage.items.forEach(item=>{
+    const row=document.createElement("span");
+    row.id="list-"+(item.key || item.pt);
+
+    let icon="⭐";
+    if(item.type==="color") icon=`<b style="display:inline-block;width:16px;height:16px;border-radius:50%;background:${item.color};box-shadow:0 2px 4px rgba(0,0,0,.25)"></b>`;
+    if(item.type==="letter") icon="🔤";
+    if(item.type==="number") icon="🔢";
+    if(item.type==="object" || item.type==="animal") icon=item.emoji;
+
+    row.innerHTML=`${icon}<br><strong>${item.pt}</strong>`;
+    learningItems.appendChild(row);
+  });
+}
+
+function addToBackpack(item){
+  let text="";
+  if(item.type==="letter" || item.type==="number") text=item.pt+" / "+item.en;
+  else if(item.emoji) text=`${item.emoji} ${item.pt} / ${item.en}`;
+  else text=`${item.pt} / ${item.en}`;
+  if(!learnedWords.includes(text)) learnedWords.push(text);
+  updateBackpack();
+}
+
+function updateBackpack(){
+  backpackItems.innerHTML="";
+  if(learnedWords.length===0){
+    backpackItems.innerHTML="<p>Nenhuma palavra ainda.</p>";
+    return;
+  }
+  learnedWords.forEach(word=>{
+    const span=document.createElement("span");
+    span.textContent=word;
+    backpackItems.appendChild(span);
+  });
+}
+
+openBackpack.onclick=()=>{updateBackpack();backpackPanel.classList.remove("hidden")};
+closeBackpack.onclick=()=>backpackPanel.classList.add("hidden");
+
+repeatSound.onclick=()=>{
+  if(!lastSoundPt || !lastSoundEn){speak("Pegue um item primeiro!","pt-BR");return}
+  speak(lastSoundPt,"pt-BR");
+  setTimeout(()=>speak(lastSoundEn,"en-US"),900);
+};
+
+openParent.onclick=()=>parentPanel.classList.remove("hidden");
+closeParent.onclick=()=>parentPanel.classList.add("hidden");
+
+addWord.onclick=()=>{
+  const stageIndex=Number(stageSelect.value);
+  const pt=wordPt.value.trim();
+  const en=wordEn.value.trim();
+  const emoji=wordEmoji.value.trim();
+  if(!pt || !en){alert("Digite a palavra em português e inglês.");return}
+  let newItem;
+  if(stageIndex===0)newItem={type:"color",pt,en,color:emoji || "#9b5de5"};
+  else if(stageIndex===1)newItem={type:"letter",pt,en,letter:pt+" "+pt.toLowerCase(),key:pt.toUpperCase()};
+  else if(stageIndex===2)newItem={type:"number",pt,en,number:pt,key:pt};
+  else if(stageIndex===3)newItem={type:"object",pt,en,emoji:emoji || "⭐"};
+  else newItem={type:"animal",pt,en,emoji:emoji || "🐾"};
+  stages[stageIndex].items.push(newItem);
+  wordPt.value="";wordEn.value="";wordEmoji.value="";
+  alert("Adicionado ao baú!");
+};
+
+removeWord.onclick=()=>{
+  const stageIndex=Number(stageSelect.value);
+  const pt=wordPt.value.trim().toLowerCase();
+  if(!pt){alert("Digite a palavra em português que deseja remover.");return}
+  stages[stageIndex].items=stages[stageIndex].items.filter(item=>item.pt.toLowerCase()!==pt);
+  wordPt.value="";wordEn.value="";wordEmoji.value="";
+  alert("Removido do baú!");
+};
+
+function speak(text,lang){
+  speechSynthesis.cancel();
+  const speech=new SpeechSynthesisUtterance(text);
+  speech.lang=lang;
+  speech.rate=.84;
+  speech.pitch=1.25;
+  speechSynthesis.speak(speech);
+}
+
+function playSound(freq=650,duration=.18){
+  const AudioContext=window.AudioContext || window.webkitAudioContext;
+  const audio=new AudioContext();
+  const osc=audio.createOscillator();
+  const gain=audio.createGain();
+  osc.connect(gain);gain.connect(audio.destination);
+  osc.frequency.value=freq;
+  gain.gain.value=.08;
+  osc.start();
+  osc.stop(audio.currentTime+duration);
+}
+
+function showMessage(html){
+  messageBox.innerHTML=html;
+  messageBox.classList.remove("hidden");
+  clearTimeout(showMessage.timer);
+  showMessage.timer=setTimeout(()=>messageBox.classList.add("hidden"),2200);
+}
+
+function getItemVisual(item){
+  if(item.type==="color") return "●";
+  if(item.type==="letter") return item.key || item.pt;
+  if(item.type==="number") return item.number || item.pt;
+  if(item.type==="object" || item.type==="animal") return item.emoji || "⭐";
+  return "⭐";
+}
+
+function animateItemToBackpack(item){
+  const target=openBackpack.getBoundingClientRect();
+  const startX=item.x;
+  const startY=item.y;
+  const endX=target.left+target.width/2;
+  const endY=target.top+target.height/2;
+
+  const fly=document.createElement("div");
+  fly.className="flyingCollect";
+  fly.textContent=getItemVisual(item);
+
+  if(item.type==="color"){
+    fly.style.background=`radial-gradient(circle at 35% 25%, #fff, ${item.color} 55%, ${item.color})`;
+    fly.style.color="transparent";
+  }
+
+  fly.style.left=startX+"px";
+  fly.style.top=startY+"px";
+  document.body.appendChild(fly);
+
+  requestAnimationFrame(()=>{
+    fly.style.left=endX+"px";
+    fly.style.top=endY+"px";
+    fly.style.transform="translate(-50%,-50%) scale(.25) rotate(18deg)";
+    fly.style.opacity="0";
+  });
+
+  setTimeout(()=>{
+    fly.remove();
+    openBackpack.animate([
+      {transform:"scale(1)"},
+      {transform:"scale(1.14)"},
+      {transform:"scale(1)"}
+    ],{duration:360,easing:"ease-out"});
+  },880);
+}
+
+function collectItem(item){
+  item.collected=true;
+  animateItemToBackpack(item);
+  setTimeout(()=>addToBackpack(item),650);
+  const listItem=document.getElementById("list-"+(item.key || item.pt));
+  if(listItem) listItem.classList.add("collected");
+  score+=10;stars++;
+  scoreEl.textContent=score;
+  starsEl.textContent=stars;
+  playSound(850,.16);
+  lastSoundPt=item.pt;lastSoundEn=item.en;
+  speak(item.pt,"pt-BR");
+  setTimeout(()=>speak(item.en,"en-US"),900);
+  createParticles(item.x,item.y,45);
+  createBalloons(item.x,item.y);
+  let content="";
+  if(item.type==="color") content=`🌈 ${item.pt} / ${item.en}`;
+  if(item.type==="letter") content=`🔤 ${item.letter}`;
+  if(item.type==="number") content=`🔢 ${item.number}`;
+  if(item.type==="object" || item.type==="animal") content=`${item.emoji}<br>${item.pt} / ${item.en}`;
+  showMessage(content);
+  const collected=activeItems.filter(i=>i.collected).length;
+  progressEl.textContent=`${collected}/${stages[currentStage].items.length}`;
+  if(collected===stages[currentStage].items.length) setTimeout(nextStage,2200);
+}
+
+function nextStage(){
+  currentStage++;
+  if(currentStage>=stages.length) finishGame();
+  else loadChestStage();
+}
+
+function finishGame(){
+  gameStarted=false;
+  victoryScreen.classList.remove("hidden");
+  speak("Parabéns! Você é um grande explorador!","pt-BR");
+  setTimeout(()=>speak("Congratulations! You are a great explorer!","en-US"),1800);
+  for(let i=0;i<180;i++) fireworks.push({
+    x:width/2,y:height/2,vx:(Math.random()-.5)*14,vy:(Math.random()-.5)*14,life:100,color:`hsl(${Math.random()*360},100%,60%)`
+  });
+}
+
+function createParticles(x,y,total=45){
+  for(let i=0;i<total;i++) particles.push({
+    x,y,vx:(Math.random()-.5)*8,vy:(Math.random()-.5)*8,life:50,color:`hsl(${Math.random()*360},100%,65%)`
+  });
+}
+
+function createBalloons(x,y){
+  for(let i=0;i<6;i++) balloons.push({
+    x:x+Math.random()*80-40,y,vy:-2-Math.random()*2,life:120,color:`hsl(${Math.random()*360},90%,68%)`
+  });
+}
+
+function drawScenario(){
+  if(currentScenario==="forest") drawForest();
+  if(currentScenario==="beach") drawBeach();
+  if(currentScenario==="night") drawNight();
+  if(currentScenario==="castle") drawCastle();
+  if(currentScenario==="space") drawSpace();
+  if(currentScenario==="ice") drawIce();
+}
+
+function drawGradient(c1,c2,c3,c4){
+  const sky=ctx.createLinearGradient(0,0,0,height);
+  sky.addColorStop(0,c1);sky.addColorStop(.35,c2);sky.addColorStop(.72,c3);sky.addColorStop(1,c4);
+  ctx.fillStyle=sky;ctx.fillRect(0,0,width,height);
+}
+
+function drawForest(){
+  drawGradient("#65d7ff","#baf4ff","#91e979","#52c55e");
+  drawSoftSun();drawClouds();drawCandyMountains();drawMagicPath();drawRiver();drawBigTrees();drawFlowerBushes();drawRocks();drawCuteAnimals();drawSparkles();
+}
+function drawBeach(){
+  drawGradient("#6adfff","#bdf8ff","#ffe18d","#f8c66d");
+  drawSoftSun();drawClouds();
+  ctx.fillStyle="#4fcfff";ctx.fillRect(0,height*.68,width,height*.32);
+  ctx.fillStyle="#f9d787";ctx.fillRect(0,height*.48,width,height*.22);
+  ctx.font="36px Arial";
+  for(let i=0;i<12;i++){ctx.fillText(["🌴","🐚","🦀","⭐"][i%4],(i*150+40)%width,height*.55+(i%3)*45)}
+  drawSparkles();
+}
+function drawNight(){
+  drawGradient("#071a4d","#17276f","#304087","#263d58");
+  ctx.font="48px Arial";ctx.fillText("🌙",width-130,105);
+  for(let i=0;i<55;i++){ctx.font="18px Arial";ctx.fillText("✨",(i*77+Date.now()/90)%width,50+(i%8)*70)}
+  drawCandyMountains();drawMagicPath();drawBigTrees();drawFlowerBushes();drawRocks();drawCuteAnimals();
+}
+function drawCastle(){
+  drawGradient("#84dcff","#c7f5ff","#b8ee8c","#76ca67");
+  drawClouds();drawCandyMountains();drawMagicPath();
+  ctx.font="74px Arial";ctx.fillText("🏰",width*.45,height*.33);
+  drawFlowerBushes();drawSparkles();
+}
+function drawSpace(){
+  drawGradient("#05051f","#10103d","#1b1b5e","#252567");
+  for(let i=0;i<70;i++){ctx.font="26px Arial";ctx.fillText(["⭐","✨","🪐","🌟"][i%4],(i*71+Date.now()/50)%width,40+(i%10)*70)}
+  ctx.font="58px Arial";ctx.fillText("🚀",width*.75,height*.25);ctx.fillText("🌕",width*.12,height*.2);
+  ctx.fillStyle="#3b3b78";ctx.fillRect(0,height*.75,width,height*.25);
+}
+function drawIce(){
+  drawGradient("#bdf6ff","#e5fbff","#d7f4ff","#b3e9ff");
+  ctx.fillStyle="#eaffff";ctx.fillRect(0,height*.67,width,height*.33);
+  ctx.font="38px Arial";
+  for(let i=0;i<16;i++)ctx.fillText(["⛄","🧊","🐧","❄️"][i%4],(i*120+40)%width,height*.55+(i%4)*55);
+  drawSparkles();
+}
+
+function drawSoftSun(){
+  ctx.save();ctx.shadowColor="#ffd84d";ctx.shadowBlur=45;
+  const g=ctx.createRadialGradient(width-120,100,10,width-120,100,60);
+  g.addColorStop(0,"#fff6a7");g.addColorStop(1,"#ffbe3b");ctx.fillStyle=g;
+  ctx.beginPath();ctx.arc(width-120,100,48,0,Math.PI*2);ctx.fill();ctx.restore();
+}
+function drawClouds(){
+  ctx.fillStyle="rgba(255,255,255,.88)";
+  for(let i=0;i<5;i++){
+    const x=(i*260+Date.now()/120)%(width+220)-120;const y=55+i*35;
+    ctx.beginPath();ctx.arc(x,y,28,0,Math.PI*2);ctx.arc(x+30,y-10,35,0,Math.PI*2);ctx.arc(x+65,y,28,0,Math.PI*2);ctx.arc(x+35,y+15,35,0,Math.PI*2);ctx.fill();
+  }
+}
+function drawCandyMountains(){
+  ctx.fillStyle="#79bf83";ctx.beginPath();ctx.moveTo(0,height*.45);ctx.lineTo(width*.25,height*.18);ctx.lineTo(width*.5,height*.45);ctx.fill();
+  ctx.fillStyle="#68aa72";ctx.beginPath();ctx.moveTo(width*.3,height*.45);ctx.lineTo(width*.62,height*.2);ctx.lineTo(width,height*.45);ctx.fill();
+  ctx.fillStyle="rgba(255,255,255,.65)";ctx.beginPath();ctx.moveTo(width*.25,height*.18);ctx.lineTo(width*.18,height*.28);ctx.lineTo(width*.31,height*.28);ctx.fill();
+}
+function drawMagicPath(){
+  ctx.fillStyle="#e7b86a";
+  ctx.beginPath();ctx.moveTo(width*.1,height);ctx.quadraticCurveTo(width*.45,height*.62,width*.85,height*.75);ctx.lineTo(width*.98,height);ctx.fill();
+  ctx.strokeStyle="rgba(255,255,255,.38)";ctx.lineWidth=5;ctx.stroke();
+}
+function drawRiver(){
+  const river=ctx.createLinearGradient(0,height*.68,0,height);
+  river.addColorStop(0,"rgba(80,220,255,.85)");river.addColorStop(.5,"rgba(0,170,255,.9)");river.addColorStop(1,"rgba(0,100,230,.9)");
+  ctx.fillStyle=river;ctx.beginPath();ctx.moveTo(0,height*.72);
+  for(let x=0;x<=width;x+=50)ctx.lineTo(x,height*.72+Math.sin(Date.now()/420+x/45)*20);
+  ctx.lineTo(width,height);ctx.lineTo(0,height);ctx.fill();
+  ctx.font="24px Arial";for(let i=0;i<8;i++)ctx.fillText("🐟",(i*170+Date.now()/55)%width,height*.84+Math.sin(Date.now()/400+i)*20);
+}
+function drawBigTrees(){
+  for(let i=0;i<9;i++){
+    const x=(i*175+30)%width;const y=120+(i%5)*82;
+    ctx.save();ctx.translate(x,y);ctx.fillStyle="#7b4a25";roundedRect(ctx,-12,45,26,90,10);ctx.fill();
+    const colors=["#11964a","#20b45b","#2ec76b"];
+    colors.forEach((c,k)=>{ctx.fillStyle=c;ctx.beginPath();ctx.arc(k*24-24,45,42-k*2,0,Math.PI*2);ctx.fill()});
+    ctx.restore();
+  }
+}
+function drawFlowers(){
+  ctx.font="22px Arial";
+  for(let i=0;i<32;i++){
+    ctx.fillText(["🌸","🌼","🌺","🌷"][i%4],(i*72+20)%width,height*.52+(i%6)*55);
+  }
+}
+
+function drawFlowerBushes(){
+  for(let i=0;i<11;i++){
+    const x=(i*150+35)%width;
+    const y=height*.54+(i%4)*58;
+
+    ctx.save();
+    ctx.translate(x,y);
+
+    const bushGradient=ctx.createLinearGradient(-45,-28,45,28);
+    bushGradient.addColorStop(0,"#0f8f45");
+    bushGradient.addColorStop(.55,"#24bd5c");
+    bushGradient.addColorStop(1,"#72d85f");
+    ctx.fillStyle=bushGradient;
+
+    ctx.shadowColor="rgba(0,0,0,.18)";
+    ctx.shadowBlur=8;
+    ctx.beginPath();
+    ctx.arc(-30,8,28,0,Math.PI*2);
+    ctx.arc(0,-2,36,0,Math.PI*2);
+    ctx.arc(35,10,30,0,Math.PI*2);
+    ctx.arc(8,20,32,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.shadowBlur=0;
+    ctx.font="20px Arial";
+    const flowers=["🌸","🌼","🌺","🌷","💮"];
+    for(let f=0;f<5;f++){
+      ctx.fillText(flowers[(i+f)%flowers.length],-34+f*17,-4+Math.sin(i+f)*8);
+    }
+
+    ctx.restore();
+  }
+}
+function drawRocks(){ctx.font="30px Arial";for(let i=0;i<12;i++)ctx.fillText("🪨",(i*115+60)%width,height*.53+(i%5)*55)}
+function drawCuteAnimals(){const a=["🦋","🐇","🐿️","🦉","🐢","🦊","🐦","🐞","🐝","🦔","🐸","🦆"];ctx.font="26px Arial";for(let i=0;i<a.length;i++)ctx.fillText(a[i],(i*120+Math.sin(Date.now()/700+i)*18)%width,height*.42+(i%4)*70)}
+function drawSparkles(){ctx.font="16px Arial";for(let i=0;i<25;i++){ctx.globalAlpha=.45;ctx.fillText("✨",(i*135+Date.now()/80)%width,90+Math.sin(Date.now()/900+i)*40+(i%5)*90)}ctx.globalAlpha=1}
+
+function drawChest(){
+  if(chest.opened) return;
+  chest.pulse+=.06;
+  const bounce=Math.sin(chest.pulse)*7;
+  ctx.save();ctx.translate(chest.x,chest.y+bounce);
+  ctx.shadowColor="#ffd84d";ctx.shadowBlur=35;
+  const g=ctx.createLinearGradient(-55,-45,55,55);
+  g.addColorStop(0,"#d98a32");g.addColorStop(1,"#8a481d");ctx.fillStyle=g;
+  roundedRect(ctx,-52,-18,104,62,14);ctx.fill();
+  ctx.fillStyle="#a45d26";ctx.beginPath();ctx.ellipse(0,-20,56,34,0,Math.PI,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#ffd34e";roundedRect(ctx,-8,-48,16,92,5);ctx.fill();
+  ctx.fillStyle="#fff2a0";roundedRect(ctx,-22,-4,44,28,8);ctx.fill();
+  ctx.font="27px Arial";ctx.fillText("🔒",-15,18);ctx.restore();
+  ctx.font="bold 20px Comic Sans MS";ctx.fillStyle="#fff";ctx.strokeStyle="#2f8d2f";ctx.lineWidth=6;ctx.textAlign="center";
+  ctx.strokeText("Toque no baú!",chest.x,chest.y-75);ctx.fillText("Toque no baú!",chest.x,chest.y-75);ctx.textAlign="left";
+}
+
+function drawChibi(context,x,y,scale,type,walk,withShadow=true){
+  context.save();
+  context.translate(x,y);
+  context.scale(scale,scale);
+  const step=Math.sin(walk)*6;
+
+  if(withShadow){
+    context.fillStyle="rgba(0,0,0,.16)";
+    context.beginPath();
+    context.ellipse(0,55,38,12,0,0,Math.PI*2);
+    context.fill();
+  }
+
+  context.lineCap="round";
+  context.lineJoin="round";
+
+  // Pernas
+  context.strokeStyle="#f4b183";
+  context.lineWidth=10;
+  context.beginPath();
+  context.moveTo(-14,20);
+  context.lineTo(-18+step,43);
+  context.moveTo(14,20);
+  context.lineTo(18-step,43);
+  context.stroke();
+
+  // Tênis
+  context.fillStyle=type==="girl"?"#ff6f91":"#2f80ed";
+  roundedRect(context,-31+step,39,25,12,6);
+  context.fill();
+  roundedRect(context,7-step,39,25,12,6);
+  context.fill();
+  context.fillStyle="#fff";
+  roundedRect(context,-29+step,43,20,4,2);
+  context.fill();
+  roundedRect(context,9-step,43,20,4,2);
+  context.fill();
+
+  // Mochila
+  context.fillStyle="#8a5a2b";
+  roundedRect(context,type==="girl"?20:18,-8,22,50,11);
+  context.fill();
+  context.fillStyle="#b07432";
+  roundedRect(context,type==="girl"?23:21,5,14,20,6);
+  context.fill();
+
+  // Corpo
+  context.fillStyle=type==="girl"?"#ff6f91":"#23a455";
+  roundedRect(context,-24,-28,48,50,17);
+  context.fill();
+  context.fillStyle="rgba(255,255,255,.35)";
+  roundedRect(context,-17,-22,34,12,7);
+  context.fill();
+
+  if(type==="girl"){
+    context.fillStyle="#2f80ed";
+    context.beginPath();
+    context.moveTo(-25,18);
+    context.lineTo(25,18);
+    context.lineTo(31,39);
+    context.lineTo(-31,39);
+    context.closePath();
+    context.fill();
+
+    context.fillStyle="#fff6f6";
+    context.beginPath();
+    context.moveTo(0,-9);
+    context.bezierCurveTo(-15,-24,-26,-4,0,13);
+    context.bezierCurveTo(26,-4,15,-24,0,-9);
+    context.fill();
+  }else{
+    context.fillStyle="#1f70b9";
+    roundedRect(context,-22,18,44,22,8);
+    context.fill();
+  }
+
+  // Braços
+  context.strokeStyle="#f4b183";
+  context.lineWidth=10;
+  context.beginPath();
+  context.moveTo(-24,-11);
+  context.lineTo(-34,14+step/3);
+  context.moveTo(24,-11);
+  context.lineTo(34,14-step/3);
+  context.stroke();
+  context.fillStyle="#f4b183";
+  context.beginPath();
+  context.arc(-35,16+step/3,6,0,Math.PI*2);
+  context.arc(35,16-step/3,6,0,Math.PI*2);
+  context.fill();
+
+  // Cabelo de trás da menina fica atrás do rosto, sem cobrir olhos nem bochechas
+  if(type==="girl"){
+    context.fillStyle="#5a2d16";
+    context.beginPath();
+    context.ellipse(0,-55,43,47,0,0,Math.PI*2);
+    context.fill();
+
+    context.fillStyle="#4b2412";
+    context.beginPath();
+    context.ellipse(-31,-42,13,28,.15,0,Math.PI*2);
+    context.ellipse(31,-42,13,28,-.15,0,Math.PI*2);
+    context.fill();
+  }
+
+  // Cabeça / rosto limpo
+  context.fillStyle="#f6bd8e";
+  context.beginPath();
+  context.arc(0,-58,36,0,Math.PI*2);
+  context.fill();
+
+  context.fillStyle="#f1a874";
+  context.beginPath();
+  context.arc(-35,-58,8,0,Math.PI*2);
+  context.arc(35,-58,8,0,Math.PI*2);
+  context.fill();
+
+  // Cabelo da frente, com franja curta e acima do rosto
+  if(type==="girl"){
+    context.fillStyle="#5a2d16";
+    context.beginPath();
+    context.arc(0,-74,34,Math.PI*.98,Math.PI*2.04);
+    context.fill();
+
+    const bangs=[[-23,-75,15,18,-.45],[-8,-80,17,18,-.18],[9,-80,17,18,.18],[24,-75,14,18,.45]];
+    bangs.forEach(b=>{
+      context.beginPath();
+      context.ellipse(b[0],b[1],b[2],b[3],b[4],0,Math.PI*2);
+      context.fill();
+    });
+
+    // Laço rosa no cabelo. Sem chapéu e sem detalhe amarelo no rosto.
+    context.fillStyle="#ff5da2";
+    context.beginPath();
+    context.arc(27,-83,7,0,Math.PI*2);
+    context.arc(39,-83,7,0,Math.PI*2);
+    context.fill();
+    context.fillStyle="#ff2f83";
+    context.beginPath();
+    context.arc(33,-83,4,0,Math.PI*2);
+    context.fill();
+  }else{
+    context.fillStyle="#6b3718";
+    context.beginPath();
+    context.arc(0,-76,34,Math.PI,Math.PI*2);
+    context.fill();
+    for(let i=0;i<7;i++){
+      context.beginPath();
+      context.ellipse(-28+i*10,-76-Math.sin(i)*7,13,24,-.8+i*.2,0,Math.PI*2);
+      context.fill();
+    }
+  }
+
+  // Rosto: olhos, brilho, bochechas e sorriso
+  context.fillStyle="#2b160a";
+  context.beginPath();
+  context.arc(-13,-59,5,0,Math.PI*2);
+  context.arc(13,-59,5,0,Math.PI*2);
+  context.fill();
+
+  context.fillStyle="#fff";
+  context.beginPath();
+  context.arc(-15,-61,2,0,Math.PI*2);
+  context.arc(11,-61,2,0,Math.PI*2);
+  context.fill();
+
+  context.fillStyle="rgba(255,94,120,.35)";
+  context.beginPath();
+  context.arc(-23,-50,7,0,Math.PI*2);
+  context.arc(23,-50,7,0,Math.PI*2);
+  context.fill();
+
+  context.strokeStyle="#7a3518";
+  context.lineWidth=3;
+  context.beginPath();
+  context.arc(0,-50,12,0,Math.PI);
+  context.stroke();
+
+  context.restore();
+}
+
+function drawPlayer(){
+  walkTime+=.12;
+  drawChibi(ctx,player.x,player.y,.9,selectedCharacter,walkTime,true);
+}
+
+function drawItems(){
+  activeItems.forEach(item=>{
+    if(item.collected)return;
+    item.pulse+=.08;
+    const size=28+Math.sin(item.pulse)*4;
+    ctx.save();ctx.translate(item.x,item.y);
+    ctx.shadowColor="white";ctx.shadowBlur=25;
+    ctx.fillStyle="rgba(255,255,255,.42)";ctx.beginPath();ctx.arc(0,0,size+9,0,Math.PI*2);ctx.fill();
+    if(item.type==="color"){
+      ctx.fillStyle=item.color;ctx.beginPath();ctx.arc(0,0,size,0,Math.PI*2);ctx.fill();ctx.strokeStyle="white";ctx.lineWidth=5;ctx.stroke();
+    }
+    if(item.type==="letter"){
+      ctx.font=`bold ${size+16}px Comic Sans MS`;ctx.fillStyle="#7b2cbf";ctx.strokeStyle="white";ctx.lineWidth=5;ctx.strokeText(item.letter,-29,15);ctx.fillText(item.letter,-29,15);
+    }
+    if(item.type==="number"){
+      ctx.font=`bold ${size+20}px Comic Sans MS`;ctx.fillStyle="#ff7b00";ctx.strokeStyle="white";ctx.lineWidth=5;ctx.strokeText(item.number,-15,18);ctx.fillText(item.number,-15,18);
+    }
+    if(item.type==="object" || item.type==="animal"){
+      ctx.font=`${size+8}px Arial`;ctx.fillText(item.emoji,-22,15);
+    }
+    ctx.restore();
+  });
+}
+
+function drawEffects(){
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.life--;
+    ctx.globalAlpha=Math.max(p.life/50,0);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    if(p.life<=0)particles.splice(i,1);
+  }
+  for(let i=balloons.length-1;i>=0;i--){
+    const b=balloons[i];b.y+=b.vy;b.life--;
+    ctx.fillStyle=b.color;ctx.beginPath();ctx.ellipse(b.x,b.y,14,20,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle="white";ctx.beginPath();ctx.moveTo(b.x,b.y+20);ctx.lineTo(b.x,b.y+45);ctx.stroke();
+    if(b.life<=0)balloons.splice(i,1);
+  }
+  for(let i=fireworks.length-1;i>=0;i--){
+    const f=fireworks[i];f.x+=f.vx;f.y+=f.vy;f.life--;
+    ctx.fillStyle=f.color;ctx.beginPath();ctx.arc(f.x,f.y,5,0,Math.PI*2);ctx.fill();
+    if(f.life<=0)fireworks.splice(i,1);
+  }
+}
+
+const joystickBase=document.getElementById("joystickBase");
+const joystickStick=document.getElementById("joystickStick");
+let joystickActive=false;
+let joystickData={x:0,y:0};
+let joystickRadius=45;
+
+function updateJoystickRadius(){joystickRadius=window.innerWidth<=768?38:45}
+updateJoystickRadius();window.addEventListener("resize",updateJoystickRadius);
+
+function resetJoystick(){
+  const pos=window.innerWidth<=768?34:41.5;
+  joystickStick.style.left=pos+"px";joystickStick.style.top=pos+"px";
+  joystickData.x=0;joystickData.y=0;
+}
+joystickBase.addEventListener("touchstart",e=>{joystickActive=true;moveJoystick(e)},{passive:false});
+joystickBase.addEventListener("touchmove",moveJoystick,{passive:false});
+joystickBase.addEventListener("touchend",()=>{joystickActive=false;resetJoystick()});
+
+function moveJoystick(e){
+  if(!joystickActive)return;
+  e.preventDefault();
+  const rect=joystickBase.getBoundingClientRect();const touch=e.touches[0];
+  const centerX=rect.left+rect.width/2;const centerY=rect.top+rect.height/2;
+  let dx=touch.clientX-centerX;let dy=touch.clientY-centerY;
+  const distance=Math.sqrt(dx*dx+dy*dy);
+  if(distance>joystickRadius){dx=(dx/distance)*joystickRadius;dy=(dy/distance)*joystickRadius}
+  const start=window.innerWidth<=768?34:41.5;
+  joystickStick.style.left=(dx+start)+"px";joystickStick.style.top=(dy+start)+"px";
+  joystickData.x=dx/joystickRadius;joystickData.y=dy/joystickRadius;
+}
+
+function updatePlayer(){
+  let moving=false;
+  if(keys["ArrowUp"] || keys["w"]){player.y-=player.speed;moving=true}
+  if(keys["ArrowDown"] || keys["s"]){player.y+=player.speed;moving=true}
+  if(keys["ArrowLeft"] || keys["a"]){player.x-=player.speed;moving=true}
+  if(keys["ArrowRight"] || keys["d"]){player.x+=player.speed;moving=true}
+  if(Math.abs(joystickData.x)>.03 || Math.abs(joystickData.y)>.03){
+    player.x+=joystickData.x*player.speed*1.55;
+    player.y+=joystickData.y*player.speed*1.55;
+    moving=true;
+  }
+  if(!moving) walkTime+=.01;
+  player.x=Math.max(30,Math.min(width-30,player.x));
+  player.y=Math.max(95,Math.min(height-45,player.y));
+}
+
+function checkChestCollision(){
+  if(chest.opened)return;
+  const dx=player.x-chest.x;const dy=player.y-chest.y;
+  if(Math.sqrt(dx*dx+dy*dy)<75)openChest();
+}
+function checkItemCollision(){
+  activeItems.forEach(item=>{
+    if(item.collected)return;
+    const dx=player.x-item.x;const dy=player.y-item.y;
+    if(Math.sqrt(dx*dx+dy*dy)<45)collectItem(item);
+  });
+}
+
+window.addEventListener("keydown",e=>{keys[e.key]=true});
+window.addEventListener("keyup",e=>{keys[e.key]=false});
+
+function gameLoop(){
+  drawScenario();
+  if(gameStarted){
+    updatePlayer();
+    checkChestCollision();
+    checkItemCollision();
+    drawChest();
+    drawItems();
+    drawPlayer();
+  }
+  drawEffects();
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>
